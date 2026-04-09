@@ -87,7 +87,7 @@ export interface ActiveSession {
   lastMessageTime: string;
   burnRatePerMin: number;
   isIdle: boolean;
-  recentUserMessages: string[];
+  recentMessages: { question: string; inputTokens: number; outputTokens: number }[];
 }
 
 export interface BudgetSettings {

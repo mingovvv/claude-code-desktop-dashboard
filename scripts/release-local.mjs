@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 function resolveCommand(command) {
   if (process.platform === 'win32' && command === 'npm') {
@@ -17,7 +17,7 @@ function run(command, args) {
 }
 
 function runGit(args) {
-  const token = process.env.GITHUB_TOKEN?.trim();
+  const token = process.env.GITHUB_TOKEN?.trim() || readLocalToken();
   const gitArgs = [];
 
   if (token) {
@@ -32,6 +32,15 @@ function runGit(args) {
 function readVersion() {
   const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   return pkg.version;
+}
+
+function readLocalToken() {
+  const tokenFile = new URL('../.release-token', import.meta.url);
+  if (!existsSync(tokenFile)) {
+    return '';
+  }
+
+  return readFileSync(tokenFile, 'utf8').trim();
 }
 
 function main() {

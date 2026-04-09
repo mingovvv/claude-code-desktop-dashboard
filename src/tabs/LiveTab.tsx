@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { ActiveSession } from '../types';
 import { fmtTokens } from '../utils';
-import { Activity, Clock, Zap, DollarSign, MessageSquare } from 'lucide-react';
+import { Activity, Clock, Zap, DollarSign, MessageSquare, Loader2 } from 'lucide-react';
 
 interface Props {
   activeSessions: ActiveSession[];
@@ -15,6 +15,11 @@ function timeAgo(isoStr: string): string {
   if (m < 60) return `${m}분 전`;
   const h = Math.floor(m / 60);
   return `${h}시간 전`;
+}
+
+function fmtK(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+  return String(n);
 }
 
 export default function LiveTab({ activeSessions }: Props) {
@@ -127,44 +132,83 @@ export default function LiveTab({ activeSessions }: Props) {
                 </div>
               </div>
 
-              {/* Token stats */}
-              <div className="grid grid-cols-4 gap-2 px-4 pb-3">
-                {[
-                  ['입력', fmtTokens(s.currentInput)],
-                  ['출력', fmtTokens(s.currentOutput)],
-                  ['캐시 쓰기', fmtTokens(s.currentCacheWrite)],
-                  ['메시지', String(s.messageCount)],
-                ].map(([label, value]) => (
-                  <div key={label} className="rounded-lg bg-slate-900/60 px-2.5 py-2">
-                    <div className="text-[10px] text-slate-500 mb-0.5">{label}</div>
-                    <div className="text-xs text-slate-300 font-mono">{value}</div>
+              {/* Conversation messages — primary area */}
+              <div className="px-4 pb-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <MessageSquare size={11} className="text-slate-500" />
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wide font-medium">
+                    대화 내역
+                  </span>
+                  {s.recentMessages.length > 0 && (
+                    <span className="text-[10px] text-slate-600">
+                      {s.recentMessages.length}개 질문
+                    </span>
+                  )}
+                </div>
+
+                {s.recentMessages.length === 0 ? (
+                  <div className="flex items-center gap-2 py-2 text-xs text-slate-600 italic">
+                    <Clock size={11} />
+                    대화 내용 없음
                   </div>
-                ))}
+                ) : (
+                  <div className="space-y-2">
+                    {s.recentMessages.map((msg, i) => {
+                      const isActive = !s.isIdle && i === s.recentMessages.length - 1 && msg.outputTokens === 0;
+                      return (
+                        <div key={i} className="group flex gap-2.5">
+                          {/* Index */}
+                          <span className="text-[10px] text-slate-600 font-mono mt-0.5 shrink-0 w-4 text-right">
+                            {i + 1}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            {/* Question text — 3줄 고정, 호버시 전체 표시 */}
+                            <p className="text-xs text-slate-300 leading-relaxed break-words line-clamp-3 group-hover:line-clamp-none transition-all">
+                              {msg.question}
+                            </p>
+                            {/* Per-turn token info */}
+                            <div className="flex items-center gap-2 mt-1">
+                              {isActive ? (
+                                <span className="flex items-center gap-1 text-[10px] text-amber-400">
+                                  <Loader2 size={9} className="animate-spin" />
+                                  응답 중...
+                                </span>
+                              ) : msg.inputTokens + msg.outputTokens > 0 ? (
+                                <>
+                                  <span className="text-[10px] text-slate-600">
+                                    <span className="text-blue-400/70">↑{fmtK(msg.inputTokens)}</span>
+                                    {' '}
+                                    <span className="text-emerald-400/70">↓{fmtK(msg.outputTokens)}</span>
+                                  </span>
+                                </>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
-              {/* Conversation messages */}
-              {s.recentUserMessages.length > 0 && (
-                <div className="border-t border-slate-700/40 px-4 py-3">
-                  <div className="flex items-center gap-1.5 mb-2.5">
-                    <MessageSquare size={11} className="text-slate-500" />
-                    <span className="text-[10px] text-slate-500 uppercase tracking-wide font-medium">
-                      대화 내역 ({s.recentUserMessages.length}개 질문)
-                    </span>
-                  </div>
-                  <div className="space-y-1.5">
-                    {s.recentUserMessages.map((msg, i) => (
-                      <div key={i} className="flex gap-2.5 group">
-                        <span className="text-[10px] text-slate-600 font-mono mt-0.5 shrink-0 w-4 text-right">
-                          {i + 1}
-                        </span>
-                        <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap break-words flex-1">
-                          {msg}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Token stats — secondary, compact */}
+              <div className="border-t border-slate-700/30 px-4 py-2.5 flex items-center gap-3 text-xs text-slate-500">
+                <span>
+                  입력 <span className="text-slate-400 font-mono">{fmtTokens(s.currentInput)}</span>
+                </span>
+                <span className="text-slate-700">·</span>
+                <span>
+                  출력 <span className="text-slate-400 font-mono">{fmtTokens(s.currentOutput)}</span>
+                </span>
+                <span className="text-slate-700">·</span>
+                <span>
+                  캐시 <span className="text-slate-400 font-mono">{fmtTokens(s.currentCacheWrite)}</span>
+                </span>
+                <span className="text-slate-700">·</span>
+                <span>
+                  메시지 <span className="text-slate-400 font-mono">{s.messageCount}</span>
+                </span>
+              </div>
             </div>
           ))}
         </div>

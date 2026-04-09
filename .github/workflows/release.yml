@@ -69,9 +69,9 @@ jobs:
           - os: windows-latest
             label: windows
             asset_glob: out/make/squirrel.windows/x64/*Setup.exe
-          - os: macos-13
+          - os: macos-latest
             label: macos
-            asset_glob: out/make/zip/darwin/x64/*.zip
+            asset_glob: out/make/zip/darwin/*/*.zip
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout

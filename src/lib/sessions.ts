@@ -62,10 +62,11 @@ export async function getActiveSessions(
           burnRatePerMin = cached.totalCost / durationMin;
         }
 
-        // Extract recent user messages from JSONL
-        const recentUserMessages: string[] = [];
+        // Extract recent message pairs (user question + next assistant token usage)
+        const recentMessages: { question: string; inputTokens: number; outputTokens: number }[] = [];
         try {
           const content = await fs.promises.readFile(filePath, 'utf-8');
+          let pendingQuestion = '';
           for (const line of content.split('\n')) {
             if (!line.trim()) continue;
             try {
@@ -81,9 +82,22 @@ export async function getActiveSessions(
                     .join('\n')
                     .trim();
                 }
-                if (text) recentUserMessages.push(text.slice(0, 300));
+                if (text) pendingQuestion = text;
+              } else if (obj.type === 'assistant' && pendingQuestion) {
+                const usage = obj.message?.usage ?? obj.usage ?? {};
+                const inp = (usage.input_tokens ?? 0) as number;
+                const out = (usage.output_tokens ?? 0) as number;
+                // out > 0 이어야 실제 응답 (tool 호출 중간 메시지는 out=0)
+                if (out > 0) {
+                  recentMessages.push({ question: pendingQuestion.slice(0, 300), inputTokens: inp, outputTokens: out });
+                  pendingQuestion = '';
+                }
               }
             } catch { /* skip malformed lines */ }
+          }
+          // If there's a pending question with no assistant reply yet (active turn)
+          if (pendingQuestion) {
+            recentMessages.push({ question: pendingQuestion.slice(0, 300), inputTokens: 0, outputTokens: 0 });
           }
         } catch { /* skip unreadable files */ }
 
@@ -101,7 +115,7 @@ export async function getActiveSessions(
           lastMessageTime: new Date(mtime).toISOString(),
           burnRatePerMin,
           isIdle,
-          recentUserMessages: recentUserMessages.slice(-8),
+          recentMessages: recentMessages.slice(-8),
         });
       } catch {
         continue;
