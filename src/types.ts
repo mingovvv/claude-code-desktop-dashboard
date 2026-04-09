@@ -30,6 +30,7 @@ export interface SessionStats {
   userMessageCount: number;
   toolCallCount: number;
   models: string[];
+  firstUserMessage?: string;
 }
 
 export interface DailyStats {
@@ -86,6 +87,7 @@ export interface ActiveSession {
   lastMessageTime: string;
   burnRatePerMin: number;
   isIdle: boolean;
+  recentUserMessages: string[];
 }
 
 export interface BudgetSettings {

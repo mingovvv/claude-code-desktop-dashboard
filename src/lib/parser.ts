@@ -20,6 +20,21 @@ export interface RawLine {
   role?: string;
 }
 
+/** Extract plain text from a JSONL message content field. */
+function extractText(content: unknown): string {
+  if (typeof content === 'string') return content.trim();
+  if (Array.isArray(content)) {
+    return content
+      .filter((c): c is { type: string; text: string } =>
+        c !== null && typeof c === 'object' && c.type === 'text' && typeof c.text === 'string',
+      )
+      .map((c) => c.text)
+      .join('\n')
+      .trim();
+  }
+  return '';
+}
+
 // ─── Parse a single .jsonl session file ──────────────────────────────────────
 export async function parseSessionFile(
   filePath: string,
@@ -37,6 +52,7 @@ export async function parseSessionFile(
     const models = new Set<string>();
     let firstTimestamp = '';
     let lastTimestamp = '';
+    let firstUserMessage = '';
 
     const rl = readline.createInterface({
       input: fs.createReadStream(filePath, { encoding: 'utf-8' }),
@@ -56,6 +72,10 @@ export async function parseSessionFile(
         if (obj.type === 'user' || obj.role === 'user') {
           userMessageCount++;
           messageCount++;
+          if (!firstUserMessage) {
+            const text = extractText(obj.message?.content);
+            if (text) firstUserMessage = text.slice(0, 400);
+          }
           return;
         }
 
@@ -121,6 +141,7 @@ export async function parseSessionFile(
         userMessageCount,
         toolCallCount,
         models: [...models],
+        firstUserMessage: firstUserMessage || undefined,
       });
     });
   });

@@ -62,6 +62,31 @@ export async function getActiveSessions(
           burnRatePerMin = cached.totalCost / durationMin;
         }
 
+        // Extract recent user messages from JSONL
+        const recentUserMessages: string[] = [];
+        try {
+          const content = await fs.promises.readFile(filePath, 'utf-8');
+          for (const line of content.split('\n')) {
+            if (!line.trim()) continue;
+            try {
+              const obj = JSON.parse(line);
+              if (obj.type === 'user' || obj.role === 'user') {
+                const raw = obj.message?.content;
+                let text = '';
+                if (typeof raw === 'string') text = raw.trim();
+                else if (Array.isArray(raw)) {
+                  text = raw
+                    .filter((c: unknown) => c !== null && typeof c === 'object' && (c as Record<string, unknown>).type === 'text' && typeof (c as Record<string, unknown>).text === 'string')
+                    .map((c: unknown) => (c as Record<string, unknown>).text as string)
+                    .join('\n')
+                    .trim();
+                }
+                if (text) recentUserMessages.push(text.slice(0, 300));
+              }
+            } catch { /* skip malformed lines */ }
+          }
+        } catch { /* skip unreadable files */ }
+
         result.push({
           sessionId,
           projectPath: projectSlug,
@@ -76,6 +101,7 @@ export async function getActiveSessions(
           lastMessageTime: new Date(mtime).toISOString(),
           burnRatePerMin,
           isIdle,
+          recentUserMessages: recentUserMessages.slice(-8),
         });
       } catch {
         continue;
