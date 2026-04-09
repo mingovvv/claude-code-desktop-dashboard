@@ -1,0 +1,68 @@
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "tailwindcss";
+
+/* ── Design Tokens ────────────────────────────────────────────────────────── */
+:root {
+  /* Surfaces */
+  --bg-app:       #0f172a;  /* slate-950 — app background */
+  --bg-card:      #1e293b;  /* slate-800 — card / panel */
+  --bg-elevated:  #334155;  /* slate-700 — hover, input bg */
+
+  /* Borders */
+  --border:       rgba(51, 65, 85, 0.5);  /* slate-700/50 — default border */
+  --border-solid: #334155;                /* slate-700    — solid border */
+
+  /* Text */
+  --text-primary:   #ffffff;   /* white      — headings, values */
+  --text-secondary: #e2e8f0;   /* slate-200  — body */
+  --text-muted:     #94a3b8;   /* slate-400  — labels, hints */
+  --text-faint:     #64748b;   /* slate-500  — timestamps, subtitles */
+
+  /* Accent — used sparingly (charts, budget gauge, active highlights) */
+  --accent:         #7c3aed;   /* violet-600 */
+  --accent-hover:   #6d28d9;   /* violet-700 */
+
+  /* Semantic */
+  --cost-positive:  #34d399;   /* emerald-400 — costs, positive values */
+  --status-active:  #34d399;   /* emerald-400 — active session dot */
+  --status-idle:    #fbbf24;   /* amber-400   — idle session dot */
+  --status-error:   #f87171;   /* red-400     — errors */
+
+  /* Warning banner */
+  --warning-bg:     rgba(120, 53, 15, 0.2);   /* amber-900/20 */
+  --warning-border: rgba(180, 83, 9, 0.5);    /* amber-700/50 */
+  --warning-text:   #fcd34d;                  /* amber-300 */
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
