@@ -1,6 +1,9 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 
+const RELEASE_GIT_NAME = 'mingovvv';
+const RELEASE_GIT_EMAIL = 'mingovvv@gmail.com';
+
 function resolveCommand(command) {
   if (process.platform === 'win32' && command === 'npm') {
     return 'cmd.exe';
@@ -27,6 +30,11 @@ function runGit(args) {
 
   gitArgs.push(...args);
   execFileSync(resolveCommand('git'), gitArgs, { stdio: 'inherit' });
+}
+
+function configureLocalGitIdentity() {
+  execFileSync(resolveCommand('git'), ['config', '--local', 'user.name', RELEASE_GIT_NAME], { stdio: 'inherit' });
+  execFileSync(resolveCommand('git'), ['config', '--local', 'user.email', RELEASE_GIT_EMAIL], { stdio: 'inherit' });
 }
 
 function readVersion() {
@@ -59,6 +67,7 @@ function main() {
   }
 
   run('npm', ['version', bump, '--no-git-tag-version']);
+  configureLocalGitIdentity();
 
   const version = readVersion();
   const message = `release: v${version}`;

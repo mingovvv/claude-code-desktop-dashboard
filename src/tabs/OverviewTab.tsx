@@ -2,7 +2,7 @@ import React from 'react';
 import type { AggregatedStats } from '../types';
 import { fmtTokens } from '../utils';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, AreaChart, Area,
 } from 'recharts';
 import { DollarSign, Cpu, Database, Zap, AlertTriangle, FolderOpen } from 'lucide-react';
@@ -63,6 +63,8 @@ export default function OverviewTab({ stats, monthCost, lastMonthCost }: Props) 
   const chartData = stats.daily.slice(-30).map((d) => ({
     date: d.date.slice(5),
     cost: +d.totalCost.toFixed(4),
+    input: d.totalInput,
+    output: d.totalOutput,
     messages: d.messageCount,
     sessions: d.sessionCount,
   }));
@@ -123,35 +125,76 @@ export default function OverviewTab({ stats, monthCost, lastMonthCost }: Props) 
         />
       </div>
 
-      {/* Daily cost chart */}
-      <div className="rounded-xl bg-slate-800 border border-slate-700/50 p-4">
-        <h2 className="text-sm font-medium text-slate-300 mb-4">일별 비용 (최근 30일)</h2>
+      {/* Daily charts */}
+      <div className="rounded-xl bg-slate-800 border border-slate-700/50 p-4 space-y-5">
         {chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="costGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 11 }} />
-              <YAxis tick={{ fill: '#64748b', fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
-              <Tooltip
-                contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
-                labelStyle={{ color: '#94a3b8' }}
-                formatter={(v: number) => [`$${v.toFixed(4)}`, '비용']}
-              />
-              <Area
-                type="monotone"
-                dataKey="cost"
-                stroke="#7c3aed"
-                fill="url(#costGrad)"
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <>
+            <div>
+              <h2 className="text-sm font-medium text-slate-300 mb-3">일별 비용 (최근 30일)</h2>
+              <ResponsiveContainer width="100%" height={180}>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="costGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 11 }} />
+                  <YAxis tick={{ fill: '#64748b', fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
+                  <Tooltip
+                    contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
+                    labelStyle={{ color: '#94a3b8' }}
+                    formatter={(v: number) => [`$${v.toFixed(4)}`, '비용']}
+                  />
+                  <Area type="monotone" dataKey="cost" stroke="#7c3aed" fill="url(#costGrad)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="border-t border-slate-700/40 pt-4">
+              <h2 className="text-sm font-medium text-slate-300 mb-3">일별 토큰 사용량 (최근 30일)</h2>
+              <ResponsiveContainer width="100%" height={180}>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="inputGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="outputGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 11 }} />
+                  <YAxis tick={{ fill: '#64748b', fontSize: 11 }} tickFormatter={(v: number) =>
+                    v >= 1_000_000 ? `${(v/1_000_000).toFixed(1)}M` :
+                    v >= 1_000 ? `${(v/1_000).toFixed(0)}K` : String(v)
+                  } />
+                  <Tooltip
+                    contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
+                    labelStyle={{ color: '#94a3b8' }}
+                    formatter={(v: number, name: string) => [
+                      v >= 1_000_000 ? `${(v/1_000_000).toFixed(2)}M` :
+                      v >= 1_000 ? `${(v/1_000).toFixed(1)}K` : String(v),
+                      name === 'input' ? '입력' : '출력',
+                    ]}
+                  />
+                  <Area type="monotone" dataKey="input" stroke="#3b82f6" fill="url(#inputGrad)" strokeWidth={2} stackId="1" />
+                  <Area type="monotone" dataKey="output" stroke="#10b981" fill="url(#outputGrad)" strokeWidth={2} stackId="1" />
+                </AreaChart>
+              </ResponsiveContainer>
+              <div className="flex items-center gap-4 mt-2 justify-end">
+                <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                  <span className="inline-block w-2.5 h-2.5 rounded-sm bg-blue-500/60" />입력
+                </span>
+                <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                  <span className="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-500/60" />출력
+                </span>
+              </div>
+            </div>
+          </>
         ) : (
           <div className="flex h-[200px] items-center justify-center text-slate-500 text-sm">
             데이터 없음 — Claude Code를 사용하면 여기에 표시됩니다

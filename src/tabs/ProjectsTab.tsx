@@ -13,7 +13,8 @@ export default function ProjectsTab({ stats }: Props) {
   if (!stats) return <div className="p-6 text-slate-400">데이터 없음</div>;
 
   const chartData = stats.projects.slice(0, 10).map((p) => ({
-    name: p.projectName.length > 12 ? p.projectName.slice(0, 12) + '…' : p.projectName,
+    name: p.projectPath,   // unique key for Recharts (prevents tooltip collision)
+    label: p.projectName.length > 14 ? p.projectName.slice(0, 14) + '…' : p.projectName,
     cost: +p.totalCost.toFixed(4),
   }));
 
@@ -38,10 +39,17 @@ export default function ProjectsTab({ stats }: Props) {
             <BarChart data={chartData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
               <XAxis type="number" tick={{ fill: '#64748b', fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
-              <YAxis type="category" dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} width={90} />
+              <YAxis type="category" dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} width={100}
+                tickFormatter={(v: string) => {
+                  const p = chartData.find((d) => d.name === v);
+                  return p?.label ?? v;
+                }}
+              />
               <Tooltip
                 contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
-                formatter={(v: number) => [`$${v.toFixed(4)}`, '비용']}
+                formatter={(v: number, _: string, props: { payload?: { label?: string } }) =>
+                  [`$${v.toFixed(4)}`, props.payload?.label ?? '비용']
+                }
               />
               <Bar dataKey="cost" fill="#7c3aed" radius={[0, 4, 4, 0]} />
             </BarChart>

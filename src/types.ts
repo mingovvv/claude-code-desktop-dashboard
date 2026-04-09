@@ -144,5 +144,22 @@ export function getProjectName(projectPath: string): string {
   if (!projectPath) return 'Unknown';
   const normalized = projectPath.replace(/\\/g, '/');
   const parts = normalized.split('/').filter(Boolean);
-  return parts[parts.length - 1] || 'Unknown';
+  const last = parts[parts.length - 1] || '';
+  if (!last) return 'Unknown';
+
+  // Claude Code encodes project paths with '-' as separator
+  // e.g. "-C--Users-mk.jang-Desktop-TLC-ai-my-project" → "my-project"
+  // Skip known intermediate path components to get the actual project name
+  const skip = new Set(['C', 'D', 'E', 'Users', 'home', 'Desktop', 'Documents',
+    'projects', 'workspace', 'work', 'dev', 'code', 'src', 'repos', 'git']);
+  const segs = last.split('-').filter(Boolean);
+  let lastSkipIdx = -1;
+  for (let i = 0; i < segs.length; i++) {
+    if (skip.has(segs[i]) || /^[A-Z]$/.test(segs[i])) lastSkipIdx = i;
+  }
+  if (lastSkipIdx >= 0 && lastSkipIdx < segs.length - 1) {
+    return segs.slice(lastSkipIdx + 1).join('-');
+  }
+  // Fallback: last dash-segment
+  return segs[segs.length - 1] || last;
 }
