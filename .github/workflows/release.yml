@@ -89,6 +89,19 @@ jobs:
       - name: Build distributables
         run: npm run make
 
+      - name: List build outputs
+        shell: bash
+        run: |
+          echo "=== out/make ==="
+          find out/make -maxdepth 5 -type f | sort || true
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.label }}-release-files
+          path: out/make/**
+          if-no-files-found: warn
+
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
