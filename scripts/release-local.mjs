@@ -16,6 +16,19 @@ function run(command, args) {
   execFileSync(resolveCommand(command), args, { stdio: 'inherit' });
 }
 
+function runGit(args) {
+  const token = process.env.GITHUB_TOKEN?.trim();
+  const gitArgs = [];
+
+  if (token) {
+    const basic = Buffer.from(`x-access-token:${token}`, 'ascii').toString('base64');
+    gitArgs.push('-c', `http.https://github.com/.extraheader=AUTHORIZATION: basic ${basic}`);
+  }
+
+  gitArgs.push(...args);
+  execFileSync(resolveCommand('git'), gitArgs, { stdio: 'inherit' });
+}
+
 function readVersion() {
   const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   return pkg.version;
@@ -43,7 +56,7 @@ function main() {
 
   run('git', ['add', '.']);
   run('git', ['commit', '-m', message]);
-  run('git', ['push', 'origin', 'HEAD:main']);
+  runGit(['push', 'origin', 'HEAD:main']);
 
   console.log(`Released ${version}. GitHub Actions will build and upload assets.`);
 }
